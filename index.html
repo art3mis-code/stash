@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"/>
+<meta name="theme-color" content="#ffffff"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Stash"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<title>Stash</title>
+<style>
+:root{
+  --ink:#0f1214; --char:#33383c; --gray:#878d93; --faint:#c3c8cd;
+  --line:#e4e7ea; --line2:#eef0f2;
+  --blue:#4f93d4; --blue-ink:#2c6aa6; --ice:#eaf3fb;
+  --silver:linear-gradient(180deg,#f6f7f8 0%,#c9ced3 48%,#eceef0 100%);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;color:var(--ink);background:#fff;min-height:100vh;padding-bottom:84px;font-size:15px;line-height:1.45}
+.disp{font-family:'Archivo',sans-serif}
+.up{text-transform:uppercase;letter-spacing:.14em}
+.hide{display:none}
+input,select{font:inherit;color:var(--ink)}
+::placeholder{color:var(--faint)}
+
+/* masthead */
+.mast{padding:20px 20px 0;max-width:560px;margin:0 auto}
+.mast .kick{font-size:10px;letter-spacing:.32em;color:var(--gray);font-weight:600;text-transform:uppercase}
+.mast .title{display:flex;align-items:flex-end;justify-content:space-between}
+.mast h1{font-family:'Archivo';font-weight:900;font-size:50px;line-height:.84;letter-spacing:-.02em}
+.mast .no{font-family:'Archivo';font-weight:600;font-size:11px;letter-spacing:.2em;color:var(--gray);padding-bottom:6px}
+.silverbar{height:3px;background:var(--silver);margin:13px 0 0;border-radius:1px}
+
+main{max-width:560px;margin:0 auto;padding:0 20px}
+.screen{display:none;animation:fade .3s ease}
+.screen.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* compose */
+.compose{display:flex;border:1px solid var(--ink);margin:16px 0 4px}
+.compose.col{flex-direction:column}
+.compose .ln{display:flex;border-bottom:1px solid var(--line)}
+.compose .ln:last-child{border-bottom:none}
+.compose input{flex:1;border:none;padding:13px 14px;font-size:14px;outline:none;min-width:0;background:transparent}
+.compose select{border:none;border-left:1px solid var(--line);padding:0 12px;outline:none;background:transparent;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--char)}
+.compose .go{background:var(--ink);color:#fff;border:none;padding:0 20px;font-family:'Archivo';font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.compose .go.blue{background:var(--blue-ink)}
+
+/* section head */
+.shead{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--ink);padding-bottom:7px;margin:26px 0 0}
+.shead .idx{font-family:'Archivo';font-weight:900;font-size:15px}
+.shead .nm{font-family:'Archivo';font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:.08em}
+.shead .ct{margin-left:auto;font-size:11px;color:var(--gray);font-weight:600;letter-spacing:.1em}
+
+/* stock grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;border-left:1px solid var(--line2)}
+.tile{border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:13px 13px 11px;min-height:116px;display:flex;flex-direction:column;position:relative}
+.tile.accent{background:var(--ice)}
+.tile .thumb{width:32px;height:32px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:16px;filter:grayscale(1);margin-bottom:9px}
+.tile .nm{font-family:'Archivo';font-weight:600;font-size:16px;line-height:1.1;letter-spacing:-.01em;word-break:break-word}
+.tile .meta{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);margin-top:5px;font-weight:600}
+.tile .add{margin-top:auto;padding-top:10px;background:none;border:none;cursor:pointer;font-family:'Archivo';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--blue-ink);display:flex;align-items:center;gap:6px;text-align:left}
+.tile.accent .add{color:var(--blue-ink)}
+.tile .add.dim{color:var(--faint)}
+.tile .del{position:absolute;top:9px;right:9px;background:none;border:none;cursor:pointer;color:var(--faint);font-size:13px;line-height:1}
+
+/* wishlist pins */
+.wpin{display:flex;align-items:stretch;border:1px solid var(--line);border-top:none}
+.wlist>.wpin:first-child{border-top:1px solid var(--ink)}
+.wpin .lft{flex:1;padding:13px 14px;min-width:0}
+.wpin .nm{font-family:'Archivo';font-weight:600;font-size:18px;letter-spacing:-.01em}
+.wpin .br{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);margin-top:4px;font-weight:600}
+.wpin .wacts{display:flex;align-items:center;gap:14px;margin-top:9px}
+.wpin .wacts button,.wpin .wacts a{background:none;border:none;cursor:pointer;font-family:'Archivo';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--blue-ink);text-decoration:none;padding:0;display:flex;align-items:center;gap:5px}
+.wpin .wacts .del{color:var(--faint)}
+.wpin .pr{width:48px;flex:none;background:var(--ink);color:#fff;font-family:'Archivo';font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;letter-spacing:.04em}
+.wpin .pr.blue{background:var(--blue-ink)}
+.wpin .pr.none{background:#fff;color:var(--faint);border-left:1px solid var(--line)}
+
+/* shopping */
+.lhead{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--ink);padding-bottom:7px;margin:20px 0 0}
+.lhead .big{font-family:'Archivo';font-weight:900;font-size:26px;letter-spacing:-.01em;text-transform:uppercase}
+.lhead .ct{font-size:11px;color:var(--gray);font-weight:600;letter-spacing:.1em}
+.lhead .clr{background:none;border:none;cursor:pointer;font-family:'Archivo';font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gray)}
+.srow{display:flex;align-items:center;gap:13px;padding:13px 2px;border-bottom:1px solid var(--line2)}
+.box{width:22px;height:22px;border:1.5px solid var(--ink);flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;background:#fff}
+.box.done{background:var(--ink)}
+.srow .snm{font-family:'Archivo';font-weight:500;font-size:17px;flex:1;min-width:0}
+.srow.done .snm{color:var(--faint);text-decoration:line-through}
+.srow .src{font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray);border:1px solid var(--line);padding:2px 6px}
+.srow .del{background:none;border:none;cursor:pointer;color:var(--faint);font-size:13px}
+
+/* gifting */
+.gstats{display:flex;border:1px solid var(--ink);margin:16px 0 4px}
+.gstats .st{flex:1;padding:12px 14px;border-right:1px solid var(--line)}
+.gstats .st:last-child{border-right:none}
+.gstats .k{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray);font-weight:600}
+.gstats .vv{font-family:'Archivo';font-weight:800;font-size:22px;margin-top:3px;letter-spacing:-.01em}
+.grow2{display:flex;align-items:stretch;border:1px solid var(--line);border-top:none}
+.glist>.grow2:first-child{border-top:1px solid var(--ink)}
+.grow2 .bar{width:5px;flex:none;background:var(--gray)}
+.grow2 .bar.s1{background:var(--blue-ink)}
+.grow2 .bar.s2{background:var(--ink)}
+.grow2 .gi{flex:1;padding:13px 14px;min-width:0}
+.grow2 .who{font-family:'Archivo';font-weight:600;font-size:18px}
+.grow2 .idea{font-size:12px;color:var(--char);margin-top:3px}
+.grow2 .gr{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:8px;padding:11px 14px 11px 0}
+.grow2 .price{font-family:'Archivo';font-weight:800;font-size:16px}
+.grow2 .price.no{color:var(--faint);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.statusbtn{font-family:'Archivo';font-weight:800;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--ink);padding:6px 10px;cursor:pointer;background:#fff;color:var(--ink)}
+.statusbtn.s1{background:var(--ice);color:var(--blue-ink);border-color:var(--blue-ink)}
+.statusbtn.s2{background:var(--ink);color:#fff}
+.grow2 .gdel{background:none;border:none;cursor:pointer;color:var(--faint);font-size:12px}
+
+/* empty */
+.empty{text-align:center;color:var(--faint);padding:46px 16px;font-family:'Archivo';font-weight:600}
+.empty .big{display:block;font-size:34px;margin-bottom:12px;filter:grayscale(1)}
+.empty .t{font-size:16px;color:var(--char)}
+.empty .s{font-size:11px;letter-spacing:.06em;margin-top:6px;color:var(--gray);font-family:'Inter'}
+
+/* guide */
+#guide{border:1px solid var(--ink);padding:13px 15px;margin:16px 0 0;display:flex;gap:12px;align-items:flex-start;font-size:12.5px;color:var(--char)}
+#guide.hide{display:none}
+#guide b{font-weight:600}
+#guide .x{margin-left:auto;color:var(--gray);font-size:18px;cursor:pointer;line-height:1}
+
+/* sync screen */
+.panel{border:1px solid var(--ink);padding:16px;margin:18px 0}
+.panel h2{font-family:'Archivo';font-weight:900;font-size:18px;text-transform:uppercase;letter-spacing:.04em;margin:0 0 12px}
+.panel h3{font-family:'Archivo';font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin:0 0 10px}
+.fld{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gray);margin:12px 0 5px;font-weight:600}
+.panel input{width:100%;border:1px solid var(--line);padding:11px 12px;font-size:14px;outline:none}
+.panel input:focus{border-color:var(--ink)}
+.btn{font-family:'Archivo';font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:11px 16px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink)}
+.btnrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.note{font-size:12px;color:var(--gray);margin-top:10px;line-height:1.5}
+.cloudrow{display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.dot.on{background:var(--blue)}
+.snap{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line2)}
+.snap:last-child{border-bottom:none}
+.snap .grow{flex:1;min-width:0}
+.snap .sd{font-family:'Archivo';font-weight:600;font-size:14px}
+.snap .sm{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray);font-weight:600}
+
+/* flash */
+.flash{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;font-family:'Archivo';font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:0;transition:opacity .25s;pointer-events:none;z-index:60}
+.flash.show{opacity:1}
+
+/* spine nav */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#fff;border-top:1px solid var(--ink);max-width:560px;margin:0 auto}
+nav button{flex:1;background:none;border:none;border-right:1px solid var(--line2);cursor:pointer;padding:11px 0 calc(13px + env(safe-area-inset-bottom));text-align:center}
+nav button:last-child{border-right:none}
+nav button .sn{font-family:'Archivo';font-weight:800;font-size:13px;color:var(--faint);display:block}
+nav button .sl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-top:2px;display:block}
+nav button.on{background:var(--ink)}
+nav button.on .sn,nav button.on .sl{color:#fff}
+</style>
+</head>
+<body>
+<div class="mast">
+  <div class="kick">Inventory · Want · Give</div>
+  <div class="title"><h1>STASH</h1><div class="no" id="mastCount">№ 0</div></div>
+  <div class="silverbar"></div>
+</div>
+
+<main>
+  <div id="guide" class="hide"><div id="guideText"></div><span class="x" onclick="dismissGuide()">×</span></div>
+
+  <!-- STOCK -->
+  <section class="screen on" id="s-stock">
+    <div class="compose col">
+      <div class="ln"><input id="st_name" placeholder="Something you already have…"/><select id="st_cat"></select></div>
+      <div class="ln"><input id="st_note" placeholder="note / qty (optional)"/><button class="go" onclick="addStock()">Add</button></div>
+    </div>
+    <div id="stockList"></div>
+  </section>
+
+  <!-- WISHLIST -->
+  <section class="screen" id="s-wish">
+    <div class="compose col">
+      <div class="ln"><input id="w_name" placeholder="Something you want…"/><select id="w_pri">
+        <option value="">PRIORITY</option>
+        <option>P0 — Non-Negotiable</option><option>P1 — Daily Essential</option><option>P2 — Daily Routine</option>
+        <option>P3 — Regular Use</option><option>P4 — Weekly Ritual</option><option>P5 — As Needed</option><option>P6 — Nice to Have</option>
+      </select></div>
+      <div class="ln"><input id="w_brand" placeholder="brand"/><input id="w_link" placeholder="link" style="border-left:1px solid var(--line)"/><button class="go" onclick="addWish()">Add</button></div>
+    </div>
+    <div id="wishList"></div>
+  </section>
+
+  <!-- SHOPPING -->
+  <section class="screen" id="s-shop">
+    <div class="compose"><input id="sh_name" placeholder="Need to buy…"/><button class="go blue" onclick="addShop()">Add</button></div>
+    <div id="shopList"></div>
+    <div id="shopDone"></div>
+  </section>
+
+  <!-- GIFTING -->
+  <section class="screen" id="s-gift">
+    <div class="compose col">
+      <div class="ln"><input id="g_recip" placeholder="Who's it for?"/><input id="g_idea" placeholder="Gift idea" style="border-left:1px solid var(--line)"/></div>
+      <div class="ln"><input id="g_price" type="number" inputmode="decimal" placeholder="$ price (optional)"/><button class="go" onclick="addGift()">Add</button></div>
+    </div>
+    <div id="giftTotals"></div>
+    <div id="giftList"></div>
+  </section>
+
+  <!-- SYNC -->
+  <section class="screen" id="s-set">
+    <div class="panel">
+      <h2>Cloud &amp; Backup</h2>
+      <div class="cloudrow"><span class="dot" id="cloudDot"></span><span id="cloudStatus2">Saved on this device</span></div>
+      <div id="authBox">
+        <label class="fld">Email</label>
+        <input id="auth_email" type="email" autocomplete="username" placeholder="you@email.com"/>
+        <label class="fld">Password</label>
+        <input id="auth_pass" type="password" autocomplete="current-password" placeholder="6+ characters"/>
+        <div class="btnrow"><button class="btn" onclick="doLogin()">Log in</button><button class="btn ghost" onclick="doSignup()">Create account</button></div>
+        <p class="note">First time? Create an account — that password becomes yours, and your stash syncs to every device you log into.</p>
+      </div>
+      <div id="loggedBox" class="hide">
+        <p class="note" id="whoLabel"></p>
+        <div class="btnrow"><button class="btn ghost" onclick="pullCloud()">Sync now</button><button class="btn ghost" onclick="logoutCloud()">Log out</button></div>
+      </div>
+    </div>
+    <div class="panel"><h3>Snapshots</h3><div id="backupList" class="note">Log in to use cloud snapshots.</div></div>
+    <div class="panel"><h3>This device</h3><div class="btnrow"><button class="btn ghost" onclick="exportData()">Download backup</button><label class="btn ghost" style="cursor:pointer">Restore file<input type="file" accept="application/json" onchange="importData(event)" class="hide"/></label></div></div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="stock" class="on" onclick="switchTab('stock')"><span class="sn">01</span><span class="sl">Stock</span></button>
+  <button data-tab="wish" onclick="switchTab('wish')"><span class="sn">02</span><span class="sl">Wish</span></button>
+  <button data-tab="shop" onclick="switchTab('shop')"><span class="sn">03</span><span class="sl">Shop</span></button>
+  <button data-tab="gift" onclick="switchTab('gift')"><span class="sn">04</span><span class="sl">Give</span></button>
+  <button data-tab="set" onclick="switchTab('set')"><span class="sn">☁</span><span class="sl">Sync</span></button>
+</nav>
+
+<div class="flash" id="flash"></div>
+
+<script>
+/* ---------- model ---------- */
+const KEY='stash_v1';
+const DEFAULT_CATS=['food','meds & supplements','hygiene','cleaning & home basics','wearables'];
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function blank(){return {cats:DEFAULT_CATS.slice(),stock:[],wishlist:[],shopping:[],gifting:[],closedCats:[],updated:0,guideDone:false}}
+let DB=blank();
+
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r)DB=Object.assign(blank(),JSON.parse(r));}catch(e){}
+  if(!Array.isArray(DB.cats)||!DB.cats.length)DB.cats=DEFAULT_CATS.slice();
+}
+function persist(){DB.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}scheduleCloud();}
+function v(id){const e=document.getElementById(id);return e?e.value:''}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function money(n){return '$'+(Math.round((+n||0)*100)/100).toFixed(2)}
+function splitEmoji(name){const m=String(name||'').match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u);return m&&m[2]?{emoji:m[1],text:m[2]}:{emoji:'',text:name}}
+const CAT_ICON={'food':'🍯','meds & supplements':'🌿','hygiene':'🫧','cleaning & home basics':'🧼','wearables':'👕'};
+function catIcon(c){return CAT_ICON[c]||'▫'}
+function onList(name){return DB.shopping.some(s=>!s.done&&s.name.toLowerCase()===String(name).toLowerCase());}
+function pad2(i){return i<10?'0'+i:''+i;}
+
+/* ---------- tabs ---------- */
+function switchTab(t){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const el=document.getElementById('s-'+t); if(el)el.classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  if(t==='set')loadBackups();
+  window.scrollTo(0,0);
+}
+function updateMast(){const m=document.getElementById('mastCount');if(m)m.textContent='№ '+(DB.stock.length+DB.wishlist.length+DB.shopping.length+DB.gifting.length);}
+
+/* ---------- STOCK ---------- */
+function fillCatSelect(){const sel=document.getElementById('st_cat');if(!sel)return;sel.innerHTML=DB.cats.map(c=>`<option>${esc(c)}</option>`).join('');}
+function addStock(){
+  const name=v('st_name').trim(); if(!name){document.getElementById('st_name').focus();return;}
+  const cat=v('st_cat')||DB.cats[0];
+  DB.stock.unshift({id:uid(),name,cat,note:v('st_note').trim()});
+  document.getElementById('st_name').value='';document.getElementById('st_note').value='';
+  persist();renderStock();updateMast();flash('Added');
+}
+function delStock(id){DB.stock=DB.stock.filter(i=>i.id!==id);persist();renderStock();updateMast();}
+function stockToShopping(id){
+  const it=DB.stock.find(i=>i.id===id); if(!it)return;
+  if(onList(it.name)){flash('Already on list');renderStock();return;}
+  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'stock'});
+  persist();renderStock();renderShopping();updateMast();flash('Sent to shop');
+}
+function renderStock(){
+  const wrap=document.getElementById('stockList'); if(!wrap)return;
+  if(!DB.stock.length){wrap.innerHTML='<div class="empty"><span class="big">🧺</span><div class="t">Your cupboard is empty</div><div class="s">Log what you own so you stop re-buying it.</div></div>';return;}
+  let html='';let si=0;
+  const cats=DB.cats.concat(['other']);
+  cats.forEach(cat=>{
+    const items=cat==='other'?DB.stock.filter(i=>!DB.cats.includes(i.cat)):DB.stock.filter(i=>i.cat===cat);
+    if(!items.length)return;
+    si++;
+    html+=`<div class="shead"><span class="idx">${pad2(si)}</span><span class="nm">${esc(cat)}</span><span class="ct">${pad2(items.length)}</span></div><div class="grid">`;
+    items.forEach(it=>{
+      const se=splitEmoji(it.name);const cover=se.emoji||catIcon(it.cat);
+      const listed=onList(it.name);
+      html+=`<div class="tile ${listed?'accent':''}">
+        <button class="del" onclick="delStock('${it.id}')">✕</button>
+        <div class="thumb">${cover}</div>
+        <div class="nm">${esc(se.text)}</div>
+        ${it.note?`<div class="meta">${esc(it.note)}</div>`:''}
+        <button class="add ${listed?'dim':''}" onclick="stockToShopping('${it.id}')">→ ${listed?'On list':'List'}</button>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
+}
+
+/* ---------- WISHLIST ---------- */
+function priRank(p){const m=(p||'P9').match(/P(\d)/);return m?+m[1]:9;}
+function priClass(p){if(!p)return '';const m=p.match(/P(\d)/);return m?'p'+m[1]:'';}
+function priShort(p){const m=(p||'').match(/P\d/);return m?m[0]:'—';}
+function addWish(){
+  const name=v('w_name').trim(); if(!name){document.getElementById('w_name').focus();return;}
+  DB.wishlist.unshift({id:uid(),name,brand:v('w_brand').trim(),pri:v('w_pri'),link:v('w_link').trim()});
+  ['w_name','w_brand','w_link'].forEach(i=>document.getElementById(i).value='');document.getElementById('w_pri').value='';
+  persist();renderWish();updateMast();flash('Added');
+}
+function delWish(id){DB.wishlist=DB.wishlist.filter(i=>i.id!==id);persist();renderWish();updateMast();}
+function wishToShopping(id){
+  const it=DB.wishlist.find(i=>i.id===id); if(!it)return;
+  if(onList(it.name)){flash('Already on list');return;}
+  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'wish'});
+  persist();renderShopping();updateMast();flash('Sent to shop');
+}
+function renderWish(){
+  const wrap=document.getElementById('wishList'); if(!wrap)return;
+  if(!DB.wishlist.length){wrap.innerHTML='<div class="empty"><span class="big">✦</span><div class="t">The someday shelf is bare</div><div class="s">Park the things you’re after here.</div></div>';return;}
+  const items=DB.wishlist.slice().sort((a,b)=>priRank(a.pri)-priRank(b.pri));
+  let html='<div class="wlist">';
+  items.forEach(it=>{
+    const sh=priShort(it.pri);const cls=it.pri?(priRank(it.pri)===0?'blue':''):'none';
+    const meta=[it.brand?esc(it.brand):'',it.link?'link':''].filter(Boolean).join(' · ');
+    const linkA=it.link?`<a href="${esc(it.link)}" target="_blank" rel="noopener">View ↗</a>`:'';
+    html+=`<div class="wpin"><div class="lft">
+      <div class="nm">${esc(splitEmoji(it.name).text)}</div>
+      ${meta?`<div class="br">${meta}</div>`:''}
+      <div class="wacts"><button onclick="wishToShopping('${it.id}')">→ List</button>${linkA}<button class="del" onclick="delWish('${it.id}')">✕ Remove</button></div>
+    </div><div class="pr ${cls}">${sh}</div></div>`;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+/* ---------- SHOPPING ---------- */
+function addShop(){
+  const name=v('sh_name').trim(); if(!name){document.getElementById('sh_name').focus();return;}
+  DB.shopping.unshift({id:uid(),name,done:false,src:'manual'});
+  document.getElementById('sh_name').value='';
+  persist();renderShopping();updateMast();
+}
+function toggleShop(id){const it=DB.shopping.find(i=>i.id===id);if(!it)return;it.done=!it.done;persist();renderShopping();}
+function delShop(id){DB.shopping=DB.shopping.filter(i=>i.id!==id);persist();renderShopping();updateMast();}
+function clearDone(){DB.shopping=DB.shopping.filter(i=>!i.done);persist();renderShopping();updateMast();flash('Cleared');}
+function srcTag(s){if(s==='stock')return '<span class="src">Restock</span>';if(s==='wish')return '<span class="src">Wish</span>';return '';}
+function renderShopping(){
+  const wrap=document.getElementById('shopList'),doneWrap=document.getElementById('shopDone');
+  if(!wrap)return;
+  const open=DB.shopping.filter(i=>!i.done),done=DB.shopping.filter(i=>i.done);
+  if(!DB.shopping.length){wrap.innerHTML='<div class="empty"><span class="big">🛒</span><div class="t">List’s all clear</div><div class="s">Add items, or tap “→ List” on a stock or wishlist item.</div></div>';if(doneWrap)doneWrap.innerHTML='';return;}
+  let h=`<div class="lhead"><span class="big">To Get</span><span class="ct">${pad2(open.length)} ITEM${open.length===1?'':'S'}</span></div>`;
+  h+=open.length?open.map(it=>`<div class="srow"><div class="box" onclick="toggleShop('${it.id}')"></div><span class="snm">${esc(it.name)}</span>${srcTag(it.src)}<button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'<div class="empty" style="padding:24px"><div class="t">All checked off 🎉</div></div>';
+  wrap.innerHTML=h;
+  if(doneWrap)doneWrap.innerHTML=done.length?`<div class="lhead" style="margin-top:26px"><span class="big">In Cart</span><button class="clr" onclick="clearDone()">Clear</button></div>`+done.map(it=>`<div class="srow done"><div class="box done" onclick="toggleShop('${it.id}')">✓</div><span class="snm">${esc(it.name)}</span><button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'';
+}
+
+/* ---------- GIFTING ---------- */
+const GIFT_STATES=['Not started','Purchased','Wrapped'];
+function addGift(){
+  const recip=v('g_recip').trim(),idea=v('g_idea').trim();
+  if(!recip&&!idea){document.getElementById('g_recip').focus();return;}
+  DB.gifting.unshift({id:uid(),recip,idea,price:+v('g_price')||0,status:'Not started'});
+  ['g_recip','g_idea','g_price'].forEach(i=>document.getElementById(i).value='');
+  persist();renderGift();updateMast();flash('Added');
+}
+function cycleGift(id){const it=DB.gifting.find(i=>i.id===id);if(!it)return;const i=GIFT_STATES.indexOf(it.status);it.status=GIFT_STATES[(i+1)%GIFT_STATES.length];persist();renderGift();}
+function delGift(id){DB.gifting=DB.gifting.filter(i=>i.id!==id);persist();renderGift();updateMast();}
+function renderGift(){
+  const wrap=document.getElementById('giftList'),tot=document.getElementById('giftTotals');if(!wrap)return;
+  if(!DB.gifting.length){wrap.innerHTML='<div class="empty"><span class="big">🎁</span><div class="t">No gifts planned yet</div><div class="s">Jot people &amp; ideas as they come to you.</div></div>';if(tot)tot.innerHTML='';return;}
+  const spent=DB.gifting.filter(g=>g.status!=='Not started').reduce((s,g)=>s+(+g.price||0),0);
+  const planned=DB.gifting.reduce((s,g)=>s+(+g.price||0),0);
+  if(tot)tot.innerHTML=`<div class="gstats"><div class="st"><div class="k">Gifts</div><div class="vv">${DB.gifting.length}</div></div><div class="st"><div class="k">Planned</div><div class="vv">${money(planned)}</div></div><div class="st"><div class="k">Spent</div><div class="vv">${money(spent)}</div></div></div>`;
+  let html='<div class="glist">';
+  DB.gifting.forEach(g=>{
+    const si=GIFT_STATES.indexOf(g.status);
+    const priceHtml=g.price?`<span class="price">${money(g.price)}</span>`:'<span class="price no">no price</span>';
+    html+=`<div class="grow2"><div class="bar s${si}"></div>
+      <div class="gi"><div class="who">${esc(g.recip||'—')}</div><div class="idea">${esc(g.idea||'(no idea yet)')}</div></div>
+      <div class="gr">${priceHtml}<span style="display:flex;gap:8px;align-items:center"><button class="statusbtn s${si}" onclick="cycleGift('${g.id}')">${esc(g.status)}</button><button class="gdel" onclick="delGift('${g.id}')">✕</button></span></div>
+    </div>`;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+/* ---------- render all ---------- */
+function render(){fillCatSelect();renderStock();renderWish();renderShopping();renderGift();updateCloudLabel();updateMast();}
+
+/* ---------- flash ---------- */
+let flashT=null;
+function flash(msg){const f=document.getElementById('flash');if(!f)return;f.textContent=msg;f.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>f.classList.remove('show'),1500);}
+
+/* ---------- guide ---------- */
+function dismissGuide(){DB.guideDone=true;persist();const g=document.getElementById('guide');if(g)g.classList.add('hide');}
+function maybeGuide(){
+  const total=DB.stock.length+DB.wishlist.length+DB.shopping.length+DB.gifting.length;
+  const g=document.getElementById('guide');if(!g)return;
+  if(DB.guideDone||total>0){g.classList.add('hide');return;}
+  document.getElementById('guideText').innerHTML='<b>Welcome.</b> Log what you own under <b>01 Stock</b>. Tap <b>→ List</b> on anything to send it to <b>03 Shop</b>. Sign in under <b>Sync</b> to back up across devices.';
+  g.classList.remove('hide');
+}
+
+/* ---------- cloud (Supabase, single-user) ---------- */
+const CLOUD={url:'https://kfxyakgzfppwivrblwmv.supabase.co',key:'sb_publishable_MECWQl2dCrxyxEuRJTpH5Q_3Qq-O_Zu'};
+let SB=null,USER=null,cloudTimer=null;
+async function loadSB(){
+  if(window.supabase)return true;
+  try{await new Promise((res,rej)=>{const t=document.createElement('script');t.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';t.onload=res;t.onerror=rej;document.head.appendChild(t);});return !!window.supabase;}catch(e){return false;}
+}
+async function initCloud(){
+  if(!(await loadSB()))return;
+  try{
+    SB=window.supabase.createClient(CLOUD.url,CLOUD.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+    SB.auth.onAuthStateChange((_e,session)=>{USER=session?session.user:null;updateCloudLabel();renderSet();if(USER)pullCloud(true);});
+    const {data}=await SB.auth.getSession();USER=data&&data.session?data.session.user:null;
+    updateCloudLabel();renderSet();if(USER)pullCloud(true);
+  }catch(e){}
+}
+async function doLogin(){
+  if(!SB)await initCloud();if(!SB){flash('Cloud not ready');return;}
+  const email=v('auth_email').trim(),password=document.getElementById('auth_pass').value;
+  if(!email||!password){flash('Enter email + password');return;}
+  try{const {error}=await SB.auth.signInWithPassword({email,password});if(error)throw error;document.getElementById('auth_pass').value='';flash('Logged in');}
+  catch(e){flash('Login failed');}
+}
+async function doSignup(){
+  if(!SB)await initCloud();if(!SB){flash('Cloud not ready');return;}
+  const email=v('auth_email').trim(),password=document.getElementById('auth_pass').value;
+  if(!email){flash('Enter your email');return;}
+  if((password||'').length<6){flash('Password 6+ chars');return;}
+  try{const {error}=await SB.auth.signUp({email,password});if(error)throw error;document.getElementById('auth_pass').value='';flash('You\'re in');}
+  catch(e){flash('Could not create account');}
+}
+async function logoutCloud(){if(SB)try{await SB.auth.signOut()}catch(e){}USER=null;updateCloudLabel();renderSet();flash('Logged out');}
+function scheduleCloud(){if(!SB||!USER)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{pushCloud();snapshot();},4000);}
+async function pushCloud(){if(!SB||!USER)return;try{await SB.from('stash').upsert({user_id:USER.id,data:DB,updated_at:new Date().toISOString()});}catch(e){}}
+async function pullCloud(silent){
+  if(!SB||!USER){if(!silent)flash('Log in first');return;}
+  try{
+    const {data,error}=await SB.from('stash').select('data,updated_at').eq('user_id',USER.id).maybeSingle();
+    if(error){if(!silent)flash('Cloud unreachable');return;}
+    if(!data){await pushCloud();if(!silent)flash('Synced');return;}
+    if((data.data.updated||0)>(DB.updated||0)){DB=Object.assign(blank(),data.data);localStorage.setItem(KEY,JSON.stringify(DB));render();maybeGuide();}
+    else{await pushCloud();}
+    if(!silent)flash('Synced');
+  }catch(e){if(!silent)flash('Cloud unreachable');}
+}
+function updateCloudLabel(){
+  const on=!!(SB&&USER);
+  const d=document.getElementById('cloudDot');if(d)d.classList.toggle('on',on);
+  const s2=document.getElementById('cloudStatus2');if(s2)s2.textContent=on?'Synced to cloud':'Saved on this device';
+}
+function renderSet(){
+  const on=!!(SB&&USER);
+  const ab=document.getElementById('authBox'),lb=document.getElementById('loggedBox');
+  if(ab)ab.classList.toggle('hide',on);
+  if(lb)lb.classList.toggle('hide',!on);
+  if(on){const w=document.getElementById('whoLabel');if(w)w.textContent='Logged in as '+(USER.email||'you')+'. Changes save automatically.';}
+}
+async function snapshot(){
+  if(!SB||!USER)return;
+  const total=DB.stock.length+DB.wishlist.length+DB.shopping.length+DB.gifting.length;
+  if(!total)return;
+  try{
+    await SB.from('stash_snap').insert({user_id:USER.id,data:DB});
+    const {data:all}=await SB.from('stash_snap').select('id').eq('user_id',USER.id).order('created_at',{ascending:false});
+    if(all&&all.length>30){await SB.from('stash_snap').delete().in('id',all.slice(30).map(r=>r.id));}
+  }catch(e){}
+}
+async function loadBackups(){
+  const L=document.getElementById('backupList');if(!L)return;
+  if(!SB||!USER){L.innerHTML='Log in (above) to use cloud snapshots.';return;}
+  L.innerHTML='Loading…';
+  try{
+    const {data,error}=await SB.from('stash_snap').select('id,created_at,data').eq('user_id',USER.id).order('created_at',{ascending:false});
+    if(error){L.innerHTML='Cloud unreachable.';return;}
+    if(!data||!data.length){L.innerHTML='No snapshots yet — they save on their own as you make changes.';return;}
+    window.__snaps={};
+    L.innerHTML=data.map(b=>{window.__snaps[b.id]=b.data;const d=new Date(b.created_at);const n=b.data?(b.data.stock||[]).length+(b.data.wishlist||[]).length+(b.data.shopping||[]).length+(b.data.gifting||[]).length:0;return `<div class="snap"><div class="grow"><div class="sd">${d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</div><div class="sm">${n} items</div></div><button class="btn ghost" style="padding:7px 12px" onclick="restoreSnap('${b.id}')">Restore</button></div>`;}).join('');
+  }catch(e){L.innerHTML='Cloud unreachable.';}
+}
+function restoreSnap(id){
+  const snap=window.__snaps&&window.__snaps[id];if(!snap)return;
+  if(!confirm('Replace what you have now with this snapshot?'))return;
+  DB=Object.assign(blank(),snap);persist();render();maybeGuide();flash('Restored');
+}
+
+/* ---------- backup files ---------- */
+function exportData(){const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='stash-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();}
+function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);DB=Object.assign(blank(),d);persist();render();maybeGuide();flash('Restored');}catch(e){flash('File could not be read');}};r.readAsText(f);}
+
+/* ---------- boot ---------- */
+function boot(){load();render();maybeGuide();initCloud();if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}}
+if(typeof document!=='undefined'&&document.getElementById('stockList'))boot();
+
+/* expose for node test */
+if(typeof module!=='undefined')module.exports={get DB(){return DB},set DB(x){DB=x},blank,addStock,addWish,addShop,addGift,stockToShopping,wishToShopping,toggleShop,cycleGift,delGift,delStock,delWish,delShop,clearDone,renderStock,renderWish,renderShopping,renderGift,render,priRank,priClass,priShort,money,esc,maybeGuide,switchTab,splitEmoji,onList,pad2};
+</script>
+</body>
+</html>
