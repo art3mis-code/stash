@@ -162,6 +162,13 @@ nav button .sn{font-family:'Archivo';font-weight:800;font-size:13px;color:var(--
 nav button .sl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-top:2px;display:block}
 nav button.on{background:var(--ink)}
 nav button.on .sn,nav button.on .sl{color:#fff}
+
+/* edit + cancel */
+.compose .cancel{background:#fff;color:var(--gray);border-left:1px solid var(--line);font-family:'Archivo';font-weight:800;font-size:11px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;padding:0 16px}
+.compose.editing{border-color:var(--blue-ink)}
+.tile .edit{position:absolute;top:9px;right:30px;background:none;border:none;cursor:pointer;color:var(--blue-ink);font-size:13px;line-height:1}
+.srow .edit{background:none;border:none;cursor:pointer;color:var(--blue-ink);font-size:13px}
+.tostock{background:none;border:none;cursor:pointer;font-family:'Archivo';font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--blue-ink);border:1px solid var(--line)!important;padding:2px 6px}
 </style>
 </head>
 <body>
@@ -178,7 +185,7 @@ nav button.on .sn,nav button.on .sl{color:#fff}
   <section class="screen on" id="s-stock">
     <div class="compose col">
       <div class="ln"><input id="st_name" placeholder="Something you already have…"/><select id="st_cat"></select></div>
-      <div class="ln"><input id="st_note" placeholder="note / qty (optional)"/><button class="go" onclick="addStock()">Add</button></div>
+      <div class="ln"><input id="st_note" placeholder="note / qty (optional)"/><button class="cancel hide" id="st_cancel" onclick="cancelEdit('stock')">Cancel</button><button class="go" id="st_go" onclick="addStock()">Add</button></div>
     </div>
     <div id="stockList"></div>
   </section>
@@ -191,14 +198,14 @@ nav button.on .sn,nav button.on .sl{color:#fff}
         <option>P0 — Non-Negotiable</option><option>P1 — Daily Essential</option><option>P2 — Daily Routine</option>
         <option>P3 — Regular Use</option><option>P4 — Weekly Ritual</option><option>P5 — As Needed</option><option>P6 — Nice to Have</option>
       </select></div>
-      <div class="ln"><input id="w_brand" placeholder="brand"/><input id="w_link" placeholder="link" style="border-left:1px solid var(--line)"/><button class="go" onclick="addWish()">Add</button></div>
+      <div class="ln"><input id="w_brand" placeholder="brand"/><input id="w_link" placeholder="link" style="border-left:1px solid var(--line)"/><button class="cancel hide" id="w_cancel" onclick="cancelEdit('wish')">Cancel</button><button class="go" id="w_go" onclick="addWish()">Add</button></div>
     </div>
     <div id="wishList"></div>
   </section>
 
   <!-- SHOPPING -->
   <section class="screen" id="s-shop">
-    <div class="compose"><input id="sh_name" placeholder="Need to buy…"/><button class="go blue" onclick="addShop()">Add</button></div>
+    <div class="compose"><input id="sh_name" placeholder="Need to buy…"/><button class="cancel hide" id="sh_cancel" onclick="cancelEdit('shop')">Cancel</button><button class="go blue" id="sh_go" onclick="addShop()">Add</button></div>
     <div id="shopList"></div>
     <div id="shopDone"></div>
   </section>
@@ -207,7 +214,7 @@ nav button.on .sn,nav button.on .sl{color:#fff}
   <section class="screen" id="s-gift">
     <div class="compose col">
       <div class="ln"><input id="g_recip" placeholder="Who's it for?"/><input id="g_idea" placeholder="Gift idea" style="border-left:1px solid var(--line)"/></div>
-      <div class="ln"><input id="g_price" type="number" inputmode="decimal" placeholder="$ price (optional)"/><button class="go" onclick="addGift()">Add</button></div>
+      <div class="ln"><input id="g_price" type="number" inputmode="decimal" placeholder="$ price (optional)"/><button class="cancel hide" id="g_cancel" onclick="cancelEdit('gift')">Cancel</button><button class="go" id="g_go" onclick="addGift()">Add</button></div>
     </div>
     <div id="giftTotals"></div>
     <div id="giftList"></div>
@@ -253,6 +260,21 @@ const DEFAULT_CATS=['food','meds & supplements','hygiene','cleaning & home basic
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 function blank(){return {cats:DEFAULT_CATS.slice(),stock:[],wishlist:[],shopping:[],gifting:[],closedCats:[],updated:0,guideDone:false}}
 let DB=blank();
+let EDIT={stock:null,wish:null,shop:null,gift:null};
+function setComposeMode(tab,on){
+  const goId={stock:'st_go',wish:'w_go',shop:'sh_go',gift:'g_go'}[tab];
+  const cancelId={stock:'st_cancel',wish:'w_cancel',shop:'sh_cancel',gift:'g_cancel'}[tab];
+  const gb=document.getElementById(goId),cb=document.getElementById(cancelId);
+  if(gb){gb.textContent=on?'Save':'Add';const c=gb.closest('.compose');if(c)c.classList.toggle('editing',on);}
+  if(cb)cb.classList.toggle('hide',!on);
+}
+function cancelEdit(tab){
+  EDIT[tab]=null;setComposeMode(tab,false);
+  if(tab==='stock'){document.getElementById('st_name').value='';document.getElementById('st_note').value='';}
+  if(tab==='wish'){['w_name','w_brand','w_link'].forEach(i=>document.getElementById(i).value='');document.getElementById('w_pri').value='';}
+  if(tab==='shop'){document.getElementById('sh_name').value='';}
+  if(tab==='gift'){['g_recip','g_idea','g_price'].forEach(i=>document.getElementById(i).value='');}
+}
 
 function load(){
   try{const r=localStorage.getItem(KEY);if(r)DB=Object.assign(blank(),JSON.parse(r));}catch(e){}
@@ -283,9 +305,16 @@ function fillCatSelect(){const sel=document.getElementById('st_cat');if(!sel)ret
 function addStock(){
   const name=v('st_name').trim(); if(!name){document.getElementById('st_name').focus();return;}
   const cat=v('st_cat')||DB.cats[0];
+  if(EDIT.stock){const it=DB.stock.find(i=>i.id===EDIT.stock);if(it){it.name=name;it.cat=cat;it.note=v('st_note').trim();}cancelEdit('stock');persist();renderStock();updateMast();flash('Saved');return;}
   DB.stock.unshift({id:uid(),name,cat,note:v('st_note').trim()});
   document.getElementById('st_name').value='';document.getElementById('st_note').value='';
   persist();renderStock();updateMast();flash('Added');
+}
+function editStock(id){
+  const it=DB.stock.find(i=>i.id===id);if(!it)return;
+  document.getElementById('st_name').value=it.name;document.getElementById('st_note').value=it.note||'';
+  fillCatSelect();document.getElementById('st_cat').value=it.cat;
+  EDIT.stock=id;setComposeMode('stock',true);window.scrollTo(0,0);document.getElementById('st_name').focus();
 }
 function delStock(id){DB.stock=DB.stock.filter(i=>i.id!==id);persist();renderStock();updateMast();}
 function stockToShopping(id){
@@ -308,6 +337,7 @@ function renderStock(){
       const se=splitEmoji(it.name);const cover=se.emoji||catIcon(it.cat);
       const listed=onList(it.name);
       html+=`<div class="tile ${listed?'accent':''}">
+        <button class="edit" onclick="editStock('${it.id}')">✎</button>
         <button class="del" onclick="delStock('${it.id}')">✕</button>
         <div class="thumb">${cover}</div>
         <div class="nm">${esc(se.text)}</div>
@@ -326,9 +356,16 @@ function priClass(p){if(!p)return '';const m=p.match(/P(\d)/);return m?'p'+m[1]:
 function priShort(p){const m=(p||'').match(/P\d/);return m?m[0]:'—';}
 function addWish(){
   const name=v('w_name').trim(); if(!name){document.getElementById('w_name').focus();return;}
+  if(EDIT.wish){const it=DB.wishlist.find(i=>i.id===EDIT.wish);if(it){it.name=name;it.brand=v('w_brand').trim();it.pri=v('w_pri');it.link=v('w_link').trim();}cancelEdit('wish');persist();renderWish();updateMast();flash('Saved');return;}
   DB.wishlist.unshift({id:uid(),name,brand:v('w_brand').trim(),pri:v('w_pri'),link:v('w_link').trim()});
   ['w_name','w_brand','w_link'].forEach(i=>document.getElementById(i).value='');document.getElementById('w_pri').value='';
   persist();renderWish();updateMast();flash('Added');
+}
+function editWish(id){
+  const it=DB.wishlist.find(i=>i.id===id);if(!it)return;
+  document.getElementById('w_name').value=it.name;document.getElementById('w_brand').value=it.brand||'';
+  document.getElementById('w_link').value=it.link||'';document.getElementById('w_pri').value=it.pri||'';
+  EDIT.wish=id;setComposeMode('wish',true);window.scrollTo(0,0);document.getElementById('w_name').focus();
 }
 function delWish(id){DB.wishlist=DB.wishlist.filter(i=>i.id!==id);persist();renderWish();updateMast();}
 function wishToShopping(id){
@@ -349,7 +386,7 @@ function renderWish(){
     html+=`<div class="wpin"><div class="lft">
       <div class="nm">${esc(splitEmoji(it.name).text)}</div>
       ${meta?`<div class="br">${meta}</div>`:''}
-      <div class="wacts"><button onclick="wishToShopping('${it.id}')">→ List</button>${linkA}<button class="del" onclick="delWish('${it.id}')">✕ Remove</button></div>
+      <div class="wacts"><button onclick="wishToShopping('${it.id}')">→ List</button>${linkA}<button onclick="editWish('${it.id}')">✎ Edit</button><button class="del" onclick="delWish('${it.id}')">✕ Remove</button></div>
     </div><div class="pr ${cls}">${sh}</div></div>`;
   });
   html+='</div>';
@@ -359,9 +396,22 @@ function renderWish(){
 /* ---------- SHOPPING ---------- */
 function addShop(){
   const name=v('sh_name').trim(); if(!name){document.getElementById('sh_name').focus();return;}
+  if(EDIT.shop){const it=DB.shopping.find(i=>i.id===EDIT.shop);if(it){it.name=name;}cancelEdit('shop');persist();renderShopping();updateMast();flash('Saved');return;}
   DB.shopping.unshift({id:uid(),name,done:false,src:'manual'});
   document.getElementById('sh_name').value='';
   persist();renderShopping();updateMast();
+}
+function editShop(id){
+  const it=DB.shopping.find(i=>i.id===id);if(!it)return;
+  document.getElementById('sh_name').value=it.name;
+  EDIT.shop=id;setComposeMode('shop',true);window.scrollTo(0,0);document.getElementById('sh_name').focus();
+}
+function shopToStock(id){
+  const it=DB.shopping.find(i=>i.id===id);if(!it)return;
+  if(DB.stock.some(s=>s.name.toLowerCase()===it.name.toLowerCase())){flash('Already in stock');return;}
+  DB.stock.unshift({id:uid(),name:it.name,cat:'',note:''});
+  DB.shopping=DB.shopping.filter(i=>i.id!==id);
+  persist();renderShopping();renderStock();updateMast();flash('Filed to stock');
 }
 function toggleShop(id){const it=DB.shopping.find(i=>i.id===id);if(!it)return;it.done=!it.done;persist();renderShopping();}
 function delShop(id){DB.shopping=DB.shopping.filter(i=>i.id!==id);persist();renderShopping();updateMast();}
@@ -373,9 +423,9 @@ function renderShopping(){
   const open=DB.shopping.filter(i=>!i.done),done=DB.shopping.filter(i=>i.done);
   if(!DB.shopping.length){wrap.innerHTML='<div class="empty"><span class="big">🛒</span><div class="t">List’s all clear</div><div class="s">Add items, or tap “→ List” on a stock or wishlist item.</div></div>';if(doneWrap)doneWrap.innerHTML='';return;}
   let h=`<div class="lhead"><span class="big">To Get</span><span class="ct">${pad2(open.length)} ITEM${open.length===1?'':'S'}</span></div>`;
-  h+=open.length?open.map(it=>`<div class="srow"><div class="box" onclick="toggleShop('${it.id}')"></div><span class="snm">${esc(it.name)}</span>${srcTag(it.src)}<button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'<div class="empty" style="padding:24px"><div class="t">All checked off 🎉</div></div>';
+  h+=open.length?open.map(it=>`<div class="srow"><div class="box" onclick="toggleShop('${it.id}')"></div><span class="snm">${esc(it.name)}</span>${srcTag(it.src)}<button class="edit" onclick="editShop('${it.id}')">✎</button><button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'<div class="empty" style="padding:24px"><div class="t">All checked off 🎉</div></div>';
   wrap.innerHTML=h;
-  if(doneWrap)doneWrap.innerHTML=done.length?`<div class="lhead" style="margin-top:26px"><span class="big">In Cart</span><button class="clr" onclick="clearDone()">Clear</button></div>`+done.map(it=>`<div class="srow done"><div class="box done" onclick="toggleShop('${it.id}')">✓</div><span class="snm">${esc(it.name)}</span><button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'';
+  if(doneWrap)doneWrap.innerHTML=done.length?`<div class="lhead" style="margin-top:26px"><span class="big">In Cart</span><button class="clr" onclick="clearDone()">Clear</button></div>`+done.map(it=>`<div class="srow done"><div class="box done" onclick="toggleShop('${it.id}')">✓</div><span class="snm">${esc(it.name)}</span><button class="tostock" onclick="shopToStock('${it.id}')">→ Stock</button><button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'';
 }
 
 /* ---------- GIFTING ---------- */
@@ -383,9 +433,16 @@ const GIFT_STATES=['Not started','Purchased','Wrapped'];
 function addGift(){
   const recip=v('g_recip').trim(),idea=v('g_idea').trim();
   if(!recip&&!idea){document.getElementById('g_recip').focus();return;}
+  if(EDIT.gift){const it=DB.gifting.find(i=>i.id===EDIT.gift);if(it){it.recip=recip;it.idea=idea;it.price=+v('g_price')||0;}cancelEdit('gift');persist();renderGift();updateMast();flash('Saved');return;}
   DB.gifting.unshift({id:uid(),recip,idea,price:+v('g_price')||0,status:'Not started'});
   ['g_recip','g_idea','g_price'].forEach(i=>document.getElementById(i).value='');
   persist();renderGift();updateMast();flash('Added');
+}
+function editGift(id){
+  const it=DB.gifting.find(i=>i.id===id);if(!it)return;
+  document.getElementById('g_recip').value=it.recip||'';document.getElementById('g_idea').value=it.idea||'';
+  document.getElementById('g_price').value=it.price||'';
+  EDIT.gift=id;setComposeMode('gift',true);window.scrollTo(0,0);document.getElementById('g_recip').focus();
 }
 function cycleGift(id){const it=DB.gifting.find(i=>i.id===id);if(!it)return;const i=GIFT_STATES.indexOf(it.status);it.status=GIFT_STATES[(i+1)%GIFT_STATES.length];persist();renderGift();}
 function delGift(id){DB.gifting=DB.gifting.filter(i=>i.id!==id);persist();renderGift();updateMast();}
@@ -401,7 +458,7 @@ function renderGift(){
     const priceHtml=g.price?`<span class="price">${money(g.price)}</span>`:'<span class="price no">no price</span>';
     html+=`<div class="grow2"><div class="bar s${si}"></div>
       <div class="gi"><div class="who">${esc(g.recip||'—')}</div><div class="idea">${esc(g.idea||'(no idea yet)')}</div></div>
-      <div class="gr">${priceHtml}<span style="display:flex;gap:8px;align-items:center"><button class="statusbtn s${si}" onclick="cycleGift('${g.id}')">${esc(g.status)}</button><button class="gdel" onclick="delGift('${g.id}')">✕</button></span></div>
+      <div class="gr">${priceHtml}<span style="display:flex;gap:8px;align-items:center"><button class="statusbtn s${si}" onclick="cycleGift('${g.id}')">${esc(g.status)}</button><button class="gdel" onclick="editGift('${g.id}')" style="color:var(--blue-ink)">✎</button><button class="gdel" onclick="delGift('${g.id}')">✕</button></span></div>
     </div>`;
   });
   html+='</div>';
@@ -519,7 +576,7 @@ function boot(){load();render();maybeGuide();initCloud();if('serviceWorker'in na
 if(typeof document!=='undefined'&&document.getElementById('stockList'))boot();
 
 /* expose for node test */
-if(typeof module!=='undefined')module.exports={get DB(){return DB},set DB(x){DB=x},blank,addStock,addWish,addShop,addGift,stockToShopping,wishToShopping,toggleShop,cycleGift,delGift,delStock,delWish,delShop,clearDone,renderStock,renderWish,renderShopping,renderGift,render,priRank,priClass,priShort,money,esc,maybeGuide,switchTab,splitEmoji,onList,pad2};
+if(typeof module!=='undefined')module.exports={get DB(){return DB},set DB(x){DB=x},get EDIT(){return EDIT},blank,addStock,addWish,addShop,addGift,editStock,editWish,editShop,editGift,cancelEdit,shopToStock,stockToShopping,wishToShopping,toggleShop,cycleGift,delGift,delStock,delWish,delShop,clearDone,renderStock,renderWish,renderShopping,renderGift,render,priRank,priClass,priShort,money,esc,maybeGuide,switchTab,splitEmoji,onList,pad2};
 </script>
 </body>
 </html>
