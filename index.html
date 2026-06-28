@@ -210,7 +210,7 @@ nav button.on .sn,nav button.on .sl{color:#fff}
 
   <!-- SHOPPING -->
   <section class="screen" id="s-shop">
-    <div class="compose"><input id="sh_name" placeholder="Need to buy…"/><select id="sh_pri" style="border-left:1px solid var(--line)"><option>High</option><option selected>Med</option><option>Low</option></select><button class="cancel hide" id="sh_cancel" onclick="cancelEdit('shop')">Cancel</button><button class="go blue" id="sh_go" onclick="addShop()">Add</button></div>
+    <div class="compose"><input id="sh_name" placeholder="Need to buy…"/><select id="sh_cat" style="border-left:1px solid var(--line)"></select><button class="cancel hide" id="sh_cancel" onclick="cancelEdit('shop')">Cancel</button><button class="go blue" id="sh_go" onclick="addShop()">Add</button></div>
     <div id="shopList"></div>
     <div id="shopDone"></div>
   </section>
@@ -277,7 +277,7 @@ function cancelEdit(tab){
   EDIT[tab]=null;setComposeMode(tab,false);
   if(tab==='stock'){document.getElementById('st_name').value='';document.getElementById('st_note').value='';}
   if(tab==='wish'){['w_name','w_brand','w_link'].forEach(i=>document.getElementById(i).value='');document.getElementById('w_pri').value='';}
-  if(tab==='shop'){document.getElementById('sh_name').value='';document.getElementById('sh_pri').value='Med';}
+  if(tab==='shop'){document.getElementById('sh_name').value='';fillShopCatSelect();document.getElementById('sh_cat').value=DB.cats[0];}
   if(tab==='gift'){['g_recip','g_idea','g_price'].forEach(i=>document.getElementById(i).value='');}
 }
 
@@ -286,7 +286,7 @@ function load(){
   if(!Array.isArray(DB.cats)||!DB.cats.length)DB.cats=DEFAULT_CATS.slice();
   migrate();
 }
-function migrate(){ (DB.shopping||[]).forEach(it=>{ if(!it.pri)it.pri='Med'; if(!it.created)it.created=0; }); }
+function migrate(){ (DB.shopping||[]).forEach(it=>{ if(it.cat===undefined)it.cat=''; if(!it.created)it.created=0; delete it.pri; }); }
 function persist(){DB.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}scheduleCloud();}
 function v(id){const e=document.getElementById(id);return e?e.value:''}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -296,9 +296,7 @@ const CAT_ICON={'food':'🍯','meds & supplements':'🌿','hygiene':'🫧','clea
 function catIcon(c){return CAT_ICON[c]||'▫'}
 function onList(name){return DB.shopping.some(s=>!s.done&&s.name.toLowerCase()===String(name).toLowerCase());}
 function pad2(i){return i<10?'0'+i:''+i;}
-function shopPriRank(p){return p==='High'?0:p==='Low'?2:1;}
-function shopPriCls(p){return p==='High'?'hi':p==='Low'?'lo':'md';}
-function wishPriToShop(p){const m=(p||'').match(/P(\d)/);if(!m)return 'Med';const n=+m[1];return n<=1?'High':n<=4?'Med':'Low';}
+function fillShopCatSelect(){const sel=document.getElementById('sh_cat');if(!sel)return;const cur=sel.value;sel.innerHTML=DB.cats.map(c=>`<option>${esc(c)}</option>`).join('')+'<option value="">other</option>';if(cur!==undefined)sel.value=cur;}
 function ageText(ts){if(!ts)return '';const mn=Math.floor((Date.now()-ts)/60000);if(mn<1)return 'new';if(mn<60)return mn+'m';const h=Math.floor(mn/60);if(h<24)return h+'h';return Math.floor(h/24)+'d';}
 
 /* ---------- tabs ---------- */
@@ -331,7 +329,7 @@ function delStock(id){DB.stock=DB.stock.filter(i=>i.id!==id);persist();renderSto
 function stockToShopping(id){
   const it=DB.stock.find(i=>i.id===id); if(!it)return;
   if(onList(it.name)){flash('Already on list');renderStock();return;}
-  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'stock',pri:'Med',created:Date.now()});
+  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'stock',cat:it.cat||'',created:Date.now()});
   persist();renderStock();renderShopping();updateMast();flash('Sent to shop');
 }
 function renderStock(){
@@ -382,7 +380,7 @@ function delWish(id){DB.wishlist=DB.wishlist.filter(i=>i.id!==id);persist();rend
 function wishToShopping(id){
   const it=DB.wishlist.find(i=>i.id===id); if(!it)return;
   if(onList(it.name)){flash('Already on list');return;}
-  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'wish',pri:wishPriToShop(it.pri),created:Date.now()});
+  DB.shopping.unshift({id:uid(),name:it.name,done:false,src:'wish',cat:'',created:Date.now()});
   persist();renderShopping();updateMast();flash('Sent to shop');
 }
 function renderWish(){
@@ -407,14 +405,14 @@ function renderWish(){
 /* ---------- SHOPPING ---------- */
 function addShop(){
   const name=v('sh_name').trim(); if(!name){document.getElementById('sh_name').focus();return;}
-  if(EDIT.shop){const it=DB.shopping.find(i=>i.id===EDIT.shop);if(it){it.name=name;it.pri=v('sh_pri')||'Med';}cancelEdit('shop');persist();renderShopping();updateMast();flash('Saved');return;}
-  DB.shopping.unshift({id:uid(),name,done:false,src:'manual',pri:v('sh_pri')||'Med',created:Date.now()});
-  document.getElementById('sh_name').value='';document.getElementById('sh_pri').value='Med';
+  if(EDIT.shop){const it=DB.shopping.find(i=>i.id===EDIT.shop);if(it){it.name=name;it.cat=v('sh_cat');}cancelEdit('shop');persist();renderShopping();updateMast();flash('Saved');return;}
+  DB.shopping.unshift({id:uid(),name,done:false,src:'manual',cat:v('sh_cat'),created:Date.now()});
+  document.getElementById('sh_name').value='';fillShopCatSelect();document.getElementById('sh_cat').value=DB.cats[0];
   persist();renderShopping();updateMast();
 }
 function editShop(id){
   const it=DB.shopping.find(i=>i.id===id);if(!it)return;
-  document.getElementById('sh_name').value=it.name;document.getElementById('sh_pri').value=it.pri||'Med';
+  document.getElementById('sh_name').value=it.name;fillShopCatSelect();document.getElementById('sh_cat').value=it.cat||'';
   EDIT.shop=id;setComposeMode('shop',true);window.scrollTo(0,0);document.getElementById('sh_name').focus();
 }
 function shopToStock(id){
@@ -431,10 +429,18 @@ function srcTag(s){if(s==='stock')return '<span class="src">Restock</span>';if(s
 function renderShopping(){
   const wrap=document.getElementById('shopList'),doneWrap=document.getElementById('shopDone');
   if(!wrap)return;
-  const open=DB.shopping.filter(i=>!i.done).slice().sort((a,b)=>shopPriRank(a.pri)-shopPriRank(b.pri)||(a.created||0)-(b.created||0)),done=DB.shopping.filter(i=>i.done);
+  const open=DB.shopping.filter(i=>!i.done),done=DB.shopping.filter(i=>i.done);
   if(!DB.shopping.length){wrap.innerHTML='<div class="empty"><span class="big">🛒</span><div class="t">List’s all clear</div><div class="s">Add items, or tap “→ List” on a stock or wishlist item.</div></div>';if(doneWrap)doneWrap.innerHTML='';return;}
   let h=`<div class="lhead"><span class="big">To Get</span><span class="ct">${pad2(open.length)} ITEM${open.length===1?'':'S'}</span></div>`;
-  h+=open.length?open.map(it=>{const ag=ageText(it.created);return `<div class="srow"><div class="box" onclick="toggleShop('${it.id}')"></div><span class="pri ${shopPriCls(it.pri)}">${esc(it.pri||'Med')}</span><span class="snm">${esc(it.name)}</span>${ag?`<span class="age">${ag}</span>`:''}${srcTag(it.src)}<button class="edit" onclick="editShop('${it.id}')">✎</button><button class="del" onclick="delShop('${it.id}')">✕</button></div>`;}).join(''):'<div class="empty" style="padding:24px"><div class="t">All checked off 🎉</div></div>';
+  if(open.length){
+    const cats=DB.cats.concat(['other']);
+    cats.forEach(cat=>{
+      const items=(cat==='other'?open.filter(i=>!DB.cats.includes(i.cat)):open.filter(i=>i.cat===cat)).sort((a,b)=>(a.created||0)-(b.created||0));
+      if(!items.length)return;
+      h+=`<div class="shead"><span class="nm">${esc(cat)}</span><span class="ct">${pad2(items.length)}</span></div>`;
+      h+=items.map(it=>{const ag=ageText(it.created);return `<div class="srow"><div class="box" onclick="toggleShop('${it.id}')"></div><span class="snm">${esc(it.name)}</span>${ag?`<span class="age">${ag}</span>`:''}${srcTag(it.src)}<button class="edit" onclick="editShop('${it.id}')">✎</button><button class="del" onclick="delShop('${it.id}')">✕</button></div>`;}).join('');
+    });
+  } else { h+='<div class="empty" style="padding:24px"><div class="t">All checked off 🎉</div></div>'; }
   wrap.innerHTML=h;
   if(doneWrap)doneWrap.innerHTML=done.length?`<div class="lhead" style="margin-top:26px"><span class="big">In Cart</span><button class="clr" onclick="clearDone()">Clear</button></div>`+done.map(it=>`<div class="srow done"><div class="box done" onclick="toggleShop('${it.id}')">✓</div><span class="snm">${esc(it.name)}</span><button class="tostock" onclick="shopToStock('${it.id}')">→ Stock</button><button class="del" onclick="delShop('${it.id}')">✕</button></div>`).join(''):'';
 }
@@ -477,7 +483,7 @@ function renderGift(){
 }
 
 /* ---------- render all ---------- */
-function render(){fillCatSelect();renderStock();renderWish();renderShopping();renderGift();updateCloudLabel();updateMast();}
+function render(){fillCatSelect();fillShopCatSelect();renderStock();renderWish();renderShopping();renderGift();updateCloudLabel();updateMast();}
 
 /* ---------- flash ---------- */
 let flashT=null;
@@ -587,7 +593,7 @@ function boot(){load();render();maybeGuide();initCloud();if('serviceWorker'in na
 if(typeof document!=='undefined'&&document.getElementById('stockList'))boot();
 
 /* expose for node test */
-if(typeof module!=='undefined')module.exports={get DB(){return DB},set DB(x){DB=x},get EDIT(){return EDIT},blank,addStock,addWish,addShop,addGift,editStock,editWish,editShop,editGift,cancelEdit,shopToStock,stockToShopping,wishToShopping,toggleShop,cycleGift,delGift,delStock,delWish,delShop,clearDone,renderStock,renderWish,renderShopping,renderGift,render,priRank,priClass,priShort,money,esc,maybeGuide,switchTab,splitEmoji,onList,pad2,migrate,shopPriRank,wishPriToShop,ageText};
+if(typeof module!=='undefined')module.exports={get DB(){return DB},set DB(x){DB=x},get EDIT(){return EDIT},blank,addStock,addWish,addShop,addGift,editStock,editWish,editShop,editGift,cancelEdit,shopToStock,stockToShopping,wishToShopping,toggleShop,cycleGift,delGift,delStock,delWish,delShop,clearDone,renderStock,renderWish,renderShopping,renderGift,render,priRank,priClass,priShort,money,esc,maybeGuide,switchTab,splitEmoji,onList,pad2,migrate,fillShopCatSelect,ageText};
 </script>
 </body>
 </html>
